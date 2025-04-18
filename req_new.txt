@@ -1,0 +1,33 @@
+--extra-index-url https://download.pytorch.org/whl/cu117
+
+# Core packages
+numpy~=1.23.3               # Compatible with PyTorch 1.13.1 and Python 3.9
+tqdm~=4.65.0
+scipy~=1.7.3                # 1.4.1 is very old; 1.7.3 is stable and compatible with Python 3.9
+matplotlib==3.4.3           # 3.2.0 is outdated; 3.4.3 supports Python 3.9 well
+pillow~=7.2.0
+yacs~=0.1.8
+tabulate~=0.8.9
+termcolor~=1.1.0
+
+# Computer Vision
+mmcv~=1.6.2                 # Make sure mmcv version is compatible with PyTorch 1.13.1
+opencv-python~=4.5.3.56
+
+# SMPL-X
+smplx~=0.1.28               # Python 3.9-compatible version
+
+# PyTorch stack
+torch==1.13.1+cu117
+torchvision==0.14.1+cu117
+torchaudio==0.13.1
+
+# Lightning
+lightning==1.9.1            # Compatible with PyTorch 1.13.1 and Python 3.9
+
+# OpenAI CLIP
+git+https://github.com/openai/CLIP.git
+
+# Optional tools (install separately if needed)
+# conda install -c conda-forge ffmpeg
+# pip install tensorboard

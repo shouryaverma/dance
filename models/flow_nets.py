@@ -70,12 +70,6 @@ class InterFlowNet_Duet(nn.Module):
         #         )
         #     )
 
-        # # MMDiT blocks for interactive modeling
-        # for i in range(num_layers):
-        #     self.blocks.append(
-        #         MMDiTBlock(latent_dim=latent_dim,)
-        #     )
-
         # Choose block type based on attention_type
         if attention_type == "vanilla":
             for i in range(num_layers):
@@ -95,17 +89,6 @@ class InterFlowNet_Duet(nn.Module):
                         num_heads=num_heads,
                         dropout=dropout,
                         ff_size=ff_size
-                    )
-                )
-        elif attention_type == "mla":
-            for i in range(num_layers):
-                self.blocks.append(
-                    MLA_CustomizedBlock(
-                        latent_dim=latent_dim,
-                        num_heads=num_heads,
-                        dropout=dropout,
-                        ff_size=ff_size,
-                        compression_ratio=compression_ratio
                     )
                 )
         else:
@@ -169,7 +152,7 @@ class InterFlowNet_Duet(nn.Module):
         # output_b = self.out(h_b)
         # # End of block dual transformer processing
 
-        # Process through MM-DiT blocks
+        # Process through new custom blocks
         for i, block in enumerate(self.blocks):
             h_a_all, h_b_all, music_emb_all = block(
                 h_a_prev, h_b_prev, music_emb, 

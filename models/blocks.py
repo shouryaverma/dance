@@ -1,7 +1,5 @@
 from .layers import *
-from .mla_layers import *
 from .flash_layers import *
-from .mmdit.mmdit_generalized_pytorch import MMDiT
 
 class TransformerBlock(nn.Module):
     def __init__(self,
@@ -59,28 +57,6 @@ class DoubleTransformerBlock(nn.Module):
         out = self.ffn(h3, emb)
         out = out + h3
         return out
-
-# class MMDiTBlock(nn.Module):
-#     def __init__(self, latent_dim=512, **kwargs):
-#         super().__init__()
-#         self.mmdit = MMDiT(
-#             depth=1,
-#             dim_modalities=(latent_dim, latent_dim, latent_dim),
-#             dim_cond=latent_dim,
-#             qk_rmsnorm=True,
-#         )
-
-#     def forward(self, x, y, music, emb=None, key_padding_mask=None):
-#         modality_tokens = (x, y, music)
-#         modality_masks = (key_padding_mask, key_padding_mask, key_padding_mask)
-
-#         x_out, y_out, music_out = self.mmdit(
-#             modality_tokens=modality_tokens,
-#             modality_masks=modality_masks,
-#             time_cond=emb
-#         )
-
-#         return x_out, y_out, music_out
 
 class VanillaCustomBlock(nn.Module):
     def __init__(
@@ -245,133 +221,6 @@ class FlashCustomizedBlock(nn.Module):
             num_heads=num_heads,
             ff_size=ff_size,
             dropout=dropout,
-            **kwargs
-        )
-       
-    def forward(self, x, y, music, emb=None, key_padding_mask=None):
-        return self.custom_block(x, y, music, emb, key_padding_mask)
-
-class MLA_CustomBlock(nn.Module):
-    """Enhanced CustomBlock using Multi-Head Latent Attention"""
-    def __init__(
-        self,
-        latent_dim=512,
-        num_heads=8,
-        ff_size=1024,
-        dropout=0.1,
-        compression_ratio=4,
-        **kwargs
-    ):
-        super().__init__()
-       
-        # Dancer self-attention with MLA
-        self.dancer_a_self_attn = MLA_SelfAttention(
-            latent_dim=latent_dim, 
-            num_heads=num_heads, 
-            dropout=dropout,
-            compression_ratio=compression_ratio
-        )
-        self.dancer_b_self_attn = MLA_SelfAttention(
-            latent_dim=latent_dim, 
-            num_heads=num_heads, 
-            dropout=dropout,
-            compression_ratio=compression_ratio
-        )
-        self.dancer_a_norm1 = nn.LayerNorm(latent_dim)
-        self.dancer_b_norm1 = nn.LayerNorm(latent_dim)
-       
-        # Cross-attention: music → dancers with MLA
-        self.music_to_a_attn = MLA_CrossAttention(
-            latent_dim=latent_dim, 
-            xf_latent_dim=latent_dim, 
-            num_heads=num_heads, 
-            dropout=dropout,
-            embed_dim=latent_dim,
-            compression_ratio=compression_ratio
-        )
-        self.music_to_b_attn = MLA_CrossAttention(
-            latent_dim=latent_dim, 
-            xf_latent_dim=latent_dim, 
-            num_heads=num_heads, 
-            dropout=dropout,
-            embed_dim=latent_dim,
-            compression_ratio=compression_ratio
-        )
-        self.dancer_a_norm2 = nn.LayerNorm(latent_dim)
-        self.dancer_b_norm2 = nn.LayerNorm(latent_dim)
-       
-        # Cross-attention: dancers interact with MLA
-        self.a_to_b_attn = MLA_CrossAttention(
-            latent_dim=latent_dim, 
-            xf_latent_dim=latent_dim, 
-            num_heads=num_heads, 
-            dropout=dropout,
-            embed_dim=latent_dim,
-            compression_ratio=compression_ratio
-        )
-        self.b_to_a_attn = MLA_CrossAttention(
-            latent_dim=latent_dim, 
-            xf_latent_dim=latent_dim, 
-            num_heads=num_heads, 
-            dropout=dropout,
-            embed_dim=latent_dim,
-            compression_ratio=compression_ratio
-        )
-        self.dancer_a_norm3 = nn.LayerNorm(latent_dim)
-        self.dancer_b_norm3 = nn.LayerNorm(latent_dim)
-       
-        # Feedforward networks for dancers
-        self.dancer_a_ffn = MLA_FFN(latent_dim, ff_size, dropout, latent_dim)
-        self.dancer_b_ffn = MLA_FFN(latent_dim, ff_size, dropout, latent_dim)
-        self.dancer_a_norm4 = nn.LayerNorm(latent_dim)
-        self.dancer_b_norm4 = nn.LayerNorm(latent_dim)
-       
-    def forward(self, x, y, music, emb=None, key_padding_mask=None):
-        # Process dancers with self-attention
-        x_norm1 = self.dancer_a_norm1(x)
-        y_norm1 = self.dancer_b_norm1(y)
-        x_self = x + self.dancer_a_self_attn(x_norm1, emb, key_padding_mask)
-        y_self = y + self.dancer_b_self_attn(y_norm1, emb, key_padding_mask)
-       
-        # Apply music conditioning to dancers (one-way)
-        x_norm2 = self.dancer_a_norm2(x_self)
-        y_norm2 = self.dancer_b_norm2(y_self)
-        x_music = x_self + self.music_to_a_attn(x_norm2, music, emb, key_padding_mask)
-        y_music = y_self + self.music_to_b_attn(y_norm2, music, emb, key_padding_mask)
-       
-        # Dancers interact with each other
-        x_norm3 = self.dancer_a_norm3(x_music)
-        y_norm3 = self.dancer_b_norm3(y_music)
-        x_interact = x_music + self.b_to_a_attn(x_norm3, y_music, emb, key_padding_mask)
-        y_interact = y_music + self.a_to_b_attn(y_norm3, x_music, emb, key_padding_mask)
-       
-        # Apply feedforward networks to dancers
-        x_norm4 = self.dancer_a_norm4(x_interact)
-        y_norm4 = self.dancer_b_norm4(y_interact)
-        x_final = x_interact + self.dancer_a_ffn(x_norm4, emb)
-        y_final = y_interact + self.dancer_b_ffn(y_norm4, emb)
-       
-        return x_final, y_final, music
-
-
-class MLA_CustomizedBlock(nn.Module):
-    """Wrapper for MLA_CustomBlock"""
-    def __init__(
-        self,
-        latent_dim=512,
-        num_heads=8,
-        ff_size=1024,
-        dropout=0.1,
-        compression_ratio=4,
-        **kwargs
-    ):
-        super().__init__()
-        self.custom_block = MLA_CustomBlock(
-            latent_dim=latent_dim,
-            num_heads=num_heads,
-            ff_size=ff_size,
-            dropout=dropout,
-            compression_ratio=compression_ratio,
             **kwargs
         )
        

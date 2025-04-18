@@ -17,8 +17,8 @@ class DuetModel(nn.Module):
         
         # Load CLIP model more efficiently
         try:
-            clip_model, _ = clip.load("ViT-L/14@336px", device="cpu", jit=False)
-            # clip_model, _ = clip.load("ViT-L/14@336px", device="cpu", jit=False, download_root='/scratch/gilbreth/gupta596/MotionGen/Text2DanceAcc/dance/checkpoints')
+            #clip_model, _ = clip.load("ViT-L/14@336px", device="cpu", jit=False)
+            clip_model, _ = clip.load("ViT-L/14@336px", device="cpu", jit=False, download_root='/scratch/gilbreth/gupta596/MotionGen/Text2DanceAcc/dance/checkpoints')
             
             # Extract required components
             self.token_embedding = clip_model.token_embedding

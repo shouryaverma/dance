@@ -191,7 +191,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Process a string input.")
     parser.add_argument("--model_cfg", type=str, default="configs/model_duet_debug.yaml", help="")
     parser.add_argument("--train_cfg", type=str, default="configs/train_duet_debug.yaml", help="")
-    parser.add_argument("--data_cfg", type=str, default="configs/datasets_duet.yaml", help="")
+    parser.add_argument("--data_cfg", type=str, default="configs/datasets_duet_prerit.yaml", help="")
     args = parser.parse_args()
     print(args)
     

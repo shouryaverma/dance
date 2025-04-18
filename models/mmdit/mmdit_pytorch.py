@@ -10,6 +10,8 @@ from torch.nn import Module, ModuleList
 from einops import rearrange, repeat, pack, unpack
 from einops.layers.torch import Rearrange
 
+from ..layers import VanillaSelfAttention, VanillaCrossAttention
+
 from x_transformers.attend import Attend
 from x_transformers import (
     RMSNorm,
@@ -165,7 +167,6 @@ class JointAttention(Module):
         return tuple(all_outs)
 
 # class
-
 class MMDiTBlock(Module):
     def __init__(
         self,
@@ -173,15 +174,18 @@ class MMDiTBlock(Module):
         dim_text,
         dim_motion,
         dim_music,
-        dim_cond = None,
-        dim_head = 64,
-        heads = 8,
-        qk_rmsnorm = False,
-        flash_attn = False,
-        num_residual_streams = 1,
+        dim_cond=None,
+        dim_head=64,
+        heads=8,
+        qk_rmsnorm=False,
+        flash_attn=False,
+        num_residual_streams=1,
         ff_kwargs: dict = dict()
     ):
         super().__init__()
+        
+        latent_dim = dim_motion
+        dropout = 0.1
 
         residual_klass = Residual if num_residual_streams == 1 else HyperConnections
 
@@ -193,10 +197,16 @@ class MMDiTBlock(Module):
 
         self.music_attn_residual_fn = residual_klass(num_residual_streams, dim=dim_music)
         self.music_ff_residual_fn = residual_klass(num_residual_streams, dim=dim_music)
+                
+        self.motion_self_attn = VanillaSelfAttention(latent_dim, heads, dropout)
+        self.motion_norm1 = nn.LayerNorm(latent_dim)
+        self.cross_attn = VanillaCrossAttention(latent_dim, latent_dim, heads, dropout, latent_dim)
+        self.motion_norm2 = nn.LayerNorm(latent_dim)
+        
+        has_cond = exists(dim_cond)
+        self.has_cond = has_cond
 
-        self.has_cond = exists(dim_cond)
-
-        if self.has_cond:
+        if has_cond:
             dim_gammas = (
                 *((dim_text,) * 4),
                 *((dim_motion,) * 4),
@@ -206,12 +216,13 @@ class MMDiTBlock(Module):
             dim_betas = (
                 *((dim_text,) * 2),
                 *((dim_motion,) * 2),
-                *((dim_music,) * 2),
+                *((dim_music,) * 2)
             )
 
             self.cond_dims = (*dim_gammas, *dim_betas)
 
             to_cond_linear = nn.Linear(dim_cond, sum(self.cond_dims))
+
             self.to_cond = nn.Sequential(
                 Rearrange('b d -> b 1 d'),
                 nn.SiLU(),
@@ -222,13 +233,13 @@ class MMDiTBlock(Module):
             nn.init.zeros_(to_cond_linear.bias)
             nn.init.constant_(to_cond_linear.bias[:sum(dim_gammas)], 1.)
 
-        self.text_attn_layernorm = nn.LayerNorm(dim_text, elementwise_affine=not self.has_cond)
-        self.motion_attn_layernorm = nn.LayerNorm(dim_motion, elementwise_affine=not self.has_cond)
-        self.music_attn_layernorm = nn.LayerNorm(dim_music, elementwise_affine=not self.has_cond)
+        self.text_attn_layernorm = nn.LayerNorm(dim_text, elementwise_affine=not has_cond)
+        self.motion_attn_layernorm = nn.LayerNorm(dim_motion, elementwise_affine=not has_cond)
+        self.music_attn_layernorm = nn.LayerNorm(dim_music, elementwise_affine=not has_cond)
 
-        self.text_ff_layernorm = nn.LayerNorm(dim_text, elementwise_affine=not self.has_cond)
-        self.motion_ff_layernorm = nn.LayerNorm(dim_motion, elementwise_affine=not self.has_cond)
-        self.music_ff_layernorm = nn.LayerNorm(dim_music, elementwise_affine=not self.has_cond)
+        self.text_ff_layernorm = nn.LayerNorm(dim_text, elementwise_affine=not has_cond)
+        self.motion_ff_layernorm = nn.LayerNorm(dim_motion, elementwise_affine=not has_cond)
+        self.music_ff_layernorm = nn.LayerNorm(dim_music, elementwise_affine=not has_cond)
 
         self.joint_attn = JointAttention(
             dim_inputs=(dim_text, dim_motion, dim_music),
@@ -249,11 +260,103 @@ class MMDiTBlock(Module):
         music_tokens,
         text_mask=None,
         time_cond=None,
+        motion_cond=None,
         skip_feedforward_text_tokens=True
     ):
-        # Same conditional logic as before, now extended to music modality
-        ...  # You would implement the same logic as the original forward, extended to music
+        assert not (exists(time_cond) ^ self.has_cond), 'time condition must be passed in if dim_cond is set at init. it should not be passed in if not set'
 
+        if self.has_cond:
+            (
+                text_pre_attn_gamma,
+                text_post_attn_gamma,
+                text_pre_ff_gamma,
+                text_post_ff_gamma,
+                motion_pre_attn_gamma,
+                motion_post_attn_gamma,
+                motion_pre_ff_gamma,
+                motion_post_ff_gamma,
+                music_pre_attn_gamma,
+                music_post_attn_gamma,
+                music_pre_ff_gamma,
+                music_post_ff_gamma,
+                text_pre_attn_beta,
+                text_pre_ff_beta,
+                motion_pre_attn_beta,
+                motion_pre_ff_beta,
+                music_pre_attn_beta,
+                music_pre_ff_beta,
+            ) = self.to_cond(time_cond).split(self.cond_dims, dim=-1)
+
+        #Add motion cross attention
+        if exists(motion_cond):
+            motion_cond = self.motion_norm1(motion_cond)
+            motion_cond = self.motion_self_attn(motion_cond)
+            motion_cond = self.motion_norm2(motion_cond)
+            motion_tokens = self.cross_attn(motion_tokens, motion_cond)
+        
+        
+        text_tokens, add_text_residual = self.text_attn_residual_fn(text_tokens)
+        motion_tokens, add_motion_residual = self.motion_attn_residual_fn(motion_tokens)
+        music_tokens, add_music_residual = self.music_attn_residual_fn(music_tokens)
+
+        text_tokens = self.text_attn_layernorm(text_tokens)
+        motion_tokens = self.motion_attn_layernorm(motion_tokens)
+        music_tokens = self.music_attn_layernorm(music_tokens)
+
+        if self.has_cond:
+            text_tokens = text_tokens * text_pre_attn_gamma + text_pre_attn_beta
+            motion_tokens = motion_tokens * motion_pre_attn_gamma + motion_pre_attn_beta
+            music_tokens = music_tokens * music_pre_attn_gamma + music_pre_attn_beta
+
+        text_tokens, motion_tokens, music_tokens = self.joint_attn(
+            inputs=(text_tokens, motion_tokens, music_tokens),
+            masks=(text_mask, None, None)
+        )
+
+        if self.has_cond:
+            text_tokens = text_tokens * text_post_attn_gamma
+            motion_tokens = motion_tokens * motion_post_attn_gamma
+            music_tokens = music_tokens * music_post_attn_gamma
+
+        text_tokens = add_text_residual(text_tokens)
+        motion_tokens = add_motion_residual(motion_tokens)
+        music_tokens = add_music_residual(music_tokens)
+
+        if not skip_feedforward_text_tokens:
+            text_tokens, add_text_residual = self.text_ff_residual_fn(text_tokens)
+            text_tokens = self.text_ff_layernorm(text_tokens)
+            if self.has_cond:
+                text_tokens = text_tokens * text_pre_ff_gamma + text_pre_ff_beta
+
+        motion_tokens, add_motion_residual = self.motion_ff_residual_fn(motion_tokens)
+        motion_tokens = self.motion_ff_layernorm(motion_tokens)
+        if self.has_cond:
+            motion_tokens = motion_tokens * motion_pre_ff_gamma + motion_pre_ff_beta
+
+        music_tokens, add_music_residual = self.music_ff_residual_fn(music_tokens)
+        music_tokens = self.music_ff_layernorm(music_tokens)
+        if self.has_cond:
+            music_tokens = music_tokens * music_pre_ff_gamma + music_pre_ff_beta
+
+        motion_tokens = self.motion_ff(motion_tokens)
+        if self.has_cond:
+            motion_tokens = motion_tokens * motion_post_ff_gamma
+        motion_tokens = add_motion_residual(motion_tokens)
+
+        music_tokens = self.music_ff(music_tokens)
+        if self.has_cond:
+            music_tokens = music_tokens * music_post_ff_gamma
+        music_tokens = add_music_residual(music_tokens)
+
+        if skip_feedforward_text_tokens:
+            return text_tokens, motion_tokens, music_tokens
+
+        text_tokens = self.text_ff(text_tokens)
+        if self.has_cond:
+            text_tokens = text_tokens * text_post_ff_gamma
+        text_tokens = add_text_residual(text_tokens)
+
+        return text_tokens, motion_tokens, music_tokens
 
 class MMDiT(Module):
     def __init__(
@@ -269,22 +372,21 @@ class MMDiT(Module):
     ):
         super().__init__()
 
-        self.expand_streams, self.reduce_streams = HyperConnections.get_expand_reduce_stream_functions(
-            num_residual_streams, disable=num_residual_streams == 1
-        )
+        self.expand_streams, self.reduce_streams = HyperConnections.get_expand_reduce_stream_functions(num_residual_streams, disable=num_residual_streams == 1)
 
         self.has_register_tokens = num_register_tokens > 0
         self.register_tokens = nn.Parameter(torch.zeros(num_register_tokens, dim_motion))
         nn.init.normal_(self.register_tokens, std=0.02)
 
-        self.blocks = ModuleList([
-            MMDiTBlock(
+        self.blocks = ModuleList([])
+        for _ in range(depth):
+            block = MMDiTBlock(
                 dim_motion=dim_motion,
                 dim_music=dim_music,
                 num_residual_streams=num_residual_streams,
                 **block_kwargs
-            ) for _ in range(depth)
-        ])
+            )
+            self.blocks.append(block)
 
         self.norm = RMSNorm(dim_motion) if final_norm else nn.Identity()
 
@@ -294,6 +396,7 @@ class MMDiT(Module):
         text_tokens,
         motion_tokens,
         music_tokens,
+        motion_cond,
         text_mask=None,
         time_cond=None,
         should_skip_last_feedforward=True
@@ -305,12 +408,13 @@ class MMDiT(Module):
         text_tokens = self.expand_streams(text_tokens)
         motion_tokens = self.expand_streams(motion_tokens)
         music_tokens = self.expand_streams(music_tokens)
+        motion_cond = self.expand_streams(motion_cond)
 
         for ind, block in enumerate(self.blocks):
             is_last = ind == (len(self.blocks) - 1)
-
             text_tokens, motion_tokens, music_tokens = block(
                 time_cond=time_cond,
+                motion_cond=motion_cond,
                 text_tokens=text_tokens,
                 motion_tokens=motion_tokens,
                 music_tokens=music_tokens,
