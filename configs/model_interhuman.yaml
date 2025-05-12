@@ -2,14 +2,14 @@
 # NUM_LAYERS: 20
 
 NAME: DuetModel
-NUM_LAYERS: 20
+NUM_LAYERS: 2
 
 NUM_HEADS: 8
 DROPOUT: 0.1
 INPUT_DIM: 262
 LATENT_DIM: 512
 FF_SIZE: 1024
-MUSIC_DIM: 4800
+MUSIC_DIM: 54
 ACTIVATION: gelu
 CHECKPOINT: #/home/verma198/Public/dance/checkpoints/duet10_both_juke/model/model=DuetModel-epoch=599-step=3600.ckpt
 

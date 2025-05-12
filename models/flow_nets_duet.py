@@ -126,10 +126,10 @@ class FlowNet_Duet(nn.Module):
             mask = mask[..., 0]
 
         if not self.use_text:
-            cond = torch.zeros(cond)
+            cond = torch.zeros_like(cond)
         
         if not self.use_music:
-            music = torch.zeros(music)
+            music = torch.zeros_like(music)
         
         # Embed timesteps and conditioning
         emb = self.embed_timestep(timesteps) + self.text_embed(cond)

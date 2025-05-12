@@ -6,7 +6,7 @@ train_set:
     MOTION_REP: global
     MODE: train
     CACHE: True
-    music_rep: 'simple'
+    music_rep: 'jukebox'
 
 val_set:
     NAME: duet
@@ -16,7 +16,7 @@ val_set:
     MOTION_REP: global
     MODE: val
     CACHE: True
-    music_rep: 'simple'
+    music_rep: 'jukebox'
 
 test_set:
     NAME: duet
@@ -26,4 +26,4 @@ test_set:
     MOTION_REP: global
     MODE: test
     CACHE: True
-    music_rep: 'simple'
+    music_rep: 'jukebox'

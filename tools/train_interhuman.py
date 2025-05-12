@@ -189,7 +189,7 @@ class LitTrainModel(pl.LightningModule):
 
         batch = OrderedDict({})
         batch["text"] = text
-        batch["music"] = music
+        batch["music"] = music.float()
         batch["motions"] = motions.reshape(B, T, -1).type(torch.float32)
         batch["motion_lens"] = motion_lens.long()
         # For ReactModel, add leader's motion as input
@@ -279,9 +279,9 @@ def build_models(cfg):
 import argparse
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Process a string input.")
-    parser.add_argument("--model_cfg", type=str, default="configs/model_duet_debug.yaml", help="")
-    parser.add_argument("--train_cfg", type=str, default="configs/train_duet_debug.yaml", help="")
-    parser.add_argument("--data_cfg", type=str, default="configs/datasets_duet_prerit.yaml", help="")
+    parser.add_argument("--model_cfg", type=str, default="configs/model_interhuman.yaml", help="")
+    parser.add_argument("--train_cfg", type=str, default="configs/train_interhuman.yaml", help="")
+    parser.add_argument("--data_cfg", type=str, default="configs/datasets_interhuman_prerit.yaml", help="")
     args = parser.parse_args()
     print(args)
     
@@ -289,8 +289,9 @@ if __name__ == '__main__':
     train_cfg = get_config(args.train_cfg)
     data_cfg = get_config(args.data_cfg).train_set
     val_data_cfg = get_config(args.data_cfg).val_set
+    test_data_cfg = get_config(args.data_cfg).test_set
 
-    datamodule = DataModule(data_cfg, val_data_cfg, None, train_cfg.TRAIN.BATCH_SIZE, train_cfg.TRAIN.NUM_WORKERS)
+    datamodule = DataModule(data_cfg, val_data_cfg, test_data_cfg, train_cfg.TRAIN.BATCH_SIZE, train_cfg.TRAIN.NUM_WORKERS)
     model = build_models(model_cfg)
 
     if train_cfg.TRAIN.RESUME:

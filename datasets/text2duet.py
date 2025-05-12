@@ -3,6 +3,9 @@ import torch
 import torch.utils.data
 from torch.utils.data import Dataset
 import os
+
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.utils import rigid_transform
 from utils.quaternion import *
 from tqdm import tqdm
@@ -299,11 +302,18 @@ def plot_t2m(mp_data, result_path, caption):
 # unit test
 if __name__ == '__main__':
 
-    music_root = '/home/verma198/data_split/music'
-    motion_root = '/home/verma198/data_split/music'
-    text_root = '/home/verma198/data_split/music'
+    music_root = '/scratch/gilbreth/gupta596/MotionGen/Text2Duet/data_split/music'
+    motion_root = '/scratch/gilbreth/gupta596/MotionGen/Text2Duet/data_split/motion'
+    text_root = '/scratch/gilbreth/gupta596/MotionGen/Text2Duet/data_split/text'
+    
 
-    t2d = Text2Duet(music_root, motion_root, text_root, split='train', dtype='pos3d', music_dance_rate=1)
+    cfg = {
+        'music_rep': 'simple'
+    }
+    from types import SimpleNamespace
+    cfg = SimpleNamespace(**cfg)
+    
+    t2d = Text2Duet(cfg, music_root, motion_root, text_root, split='train', dtype='pos3d', music_dance_rate=1)
     print(len(t2d))
     print(t2d[0])
     item_dict = t2d[0] # music: T-1, 54
@@ -312,9 +322,12 @@ if __name__ == '__main__':
     motion_2 = item_dict['motion2']
     music = item_dict['music']
     text = item_dict['text']
+    print(music)
+    print(type(music))
+    exit()
     print(length)
-    print(motion_1.shape)
-    print(music.shape)
+    print(motion_1.shape)   #(300, 262)
+    print(music.shape)      #(300, 54)
     result_path = "results/debug_ori.mp4"
     plot_t2m([motion_1, motion_2],
                       result_path,

@@ -1,0 +1,20 @@
+train_set:
+    NAME: interhuman
+    DATA_ROOT: /scratch/gilbreth/gupta596/MotionGen/MDD/Baselines/InterGen/data/interhuman_processed
+    MOTION_REP: global
+    MODE: train
+    CACHE: True
+
+val_set:
+    NAME: interhuman
+    DATA_ROOT: /scratch/gilbreth/gupta596/MotionGen/MDD/Baselines/InterGen/data/interhuman_processed
+    MOTION_REP: global
+    MODE: val
+    CACHE: True
+
+test_set:
+    NAME: interhuman
+    DATA_ROOT: /scratch/gilbreth/gupta596/MotionGen/MDD/Baselines/InterGen/data/interhuman_processed
+    MOTION_REP: global
+    MODE: test
+    CACHE: True
