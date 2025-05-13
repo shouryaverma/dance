@@ -16,7 +16,7 @@ class FlowNet_React(nn.Module):
         latent_dim=512,
         num_frames=240,
         ff_size=1024,
-        music_dim=4800,
+        music_dim=54,
         num_layers=8,
         num_heads=8,
         dropout=0.1,

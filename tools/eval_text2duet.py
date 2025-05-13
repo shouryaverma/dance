@@ -237,14 +237,14 @@ def evaluation(log_file):
 
 
 if __name__ == '__main__':
-    mm_num_samples = 100
-    mm_num_repeats = 30
-    mm_num_times = 10
+    mm_num_samples = 20
+    mm_num_repeats = 10
+    mm_num_times = 5
 
     diversity_times = 3 # 100
     replication_times = 5 # 20
 
-    batch_size = 4
+    batch_size = 64
     data_cfg = data_cfg = get_config("/home/verma198/Public/dance/configs/datasets_duet.yaml").test_set
 
     cfg_path_list = ["/home/verma198/Public/dance/configs/model_duet_debug.yaml"]

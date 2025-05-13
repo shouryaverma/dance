@@ -123,7 +123,7 @@ def get_motion_loader(batch_size, model, ground_truth_dataset, device, mm_num_sa
 
 def build_models(cfg):
     model = InterCLIP(cfg)
-    checkpoint = torch.load("/home/verma198/epoch=599-step=16800.ckpt", map_location="cpu")
+    checkpoint = torch.load("/home/verma198/Public/epoch=599-step=16800.ckpt", map_location="cpu")
     
     # Handle different checkpoint formats
     if "state_dict" in checkpoint:

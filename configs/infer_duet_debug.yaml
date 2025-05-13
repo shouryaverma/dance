@@ -1,18 +1,18 @@
 GENERAL:
-  EXP_NAME: duet10_both_juke_infer
+  EXP_NAME: react20_both_juke_infer
   CHECKPOINT: ./checkpoints
   LOG_DIR: ./log
 
 TRAIN:
   LR: 1e-4
   WEIGHT_DECAY: 0.00002
-  BATCH_SIZE: 32
+  BATCH_SIZE: 128
   STEP: 1000000
   EPOCH: 2000
   LOG_STEPS: 10
   SAVE_STEPS: 20000
   SAVE_EPOCH: 100
-  RESUME: #/home/verma198/Public/dance/checkpoints/duet10_both_juke/model/model=DuetModel-epoch=599-step=3600.ckpt
+  RESUME: /home/verma198/Public/react20_both_juke/model/model=ReactModel-epoch=4999-step=450000.ckpt
   NUM_WORKERS: 2
   MODE: finetune
   LAST_EPOCH: 0
