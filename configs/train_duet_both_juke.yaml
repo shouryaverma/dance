@@ -1,0 +1,20 @@
+GENERAL:
+  EXP_NAME: duet20_both_juke
+  CHECKPOINT: ./checkpoints
+  LOG_DIR: ./log
+
+TRAIN:
+  LR: 2e-4
+  WARMPUP_STEPS: 1000
+  WEIGHT_DECAY: 0.00002
+  BATCH_SIZE: 32
+  EPOCH: 5000
+  LOG_STEPS: 10
+  SAVE_STEPS: 20000
+  SAVE_EPOCH: 100
+  RESUME: #checkpoints/IG-S/8/model/epoch=99-step=17600.ckpt
+  NUM_WORKERS: 8
+  LAST_EPOCH: 0
+  LAST_ITER: 0
+
+# nohup python tools/train_text2duet.py > output.log 2>&1 &

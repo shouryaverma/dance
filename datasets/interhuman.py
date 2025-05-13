@@ -1,9 +1,11 @@
 import numpy as np
 import torch
 import random
-# import sys
-# import os
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import sys
+import os
+
+#sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
 from torch.utils import data
@@ -13,8 +15,9 @@ from os.path import join as pjoin
 from utils.utils import *
 from utils.plot_script import *
 from utils.preprocess import *
-import yaml
+import yaml, json
 
+reactive = False
 
 class InterHumanDataset(data.Dataset):
     def __init__(self, opt):
@@ -30,15 +33,22 @@ class InterHumanDataset(data.Dataset):
         self.motion_rep = opt.MOTION_REP
         self.data_list = []
         self.motion_dict = {}
-
         self.cache = opt.CACHE
+        
+        # Load actor-reactor label.json
+        if reactive:
+            label_path = os.path.join(opt.DATA_ROOT, "annotations_interhuman/interhuman_label.json")
+            with open(label_path, "r") as f:
+                self.actor_labels = json.load(f)
 
         ignore_list = []
         try:
             ignore_list = open(os.path.join(opt.DATA_ROOT, "ignore_list.txt"), "r").readlines()
         except Exception as e:
             print(e)
+        
         data_list = []
+        
         if self.opt.MODE == "train":
             try:
                 data_list = open(os.path.join(opt.DATA_ROOT, "split", "train.txt"), "r").readlines()
@@ -68,6 +78,11 @@ class InterHumanDataset(data.Dataset):
                         continue
                     if file.split(".")[0]+"\n" not in data_list:
                         continue
+                    
+                    if reactive:                    
+                        label = self.actor_labels.get(motion_name, 0)  # default to 0 if missing
+                        swap_persons = (label == 1)
+                    
                     file_path_person1 = pjoin(root, file)
                     file_path_person2 = pjoin(root.replace("person1", "person2"), file)
                     text_path = file_path_person1.replace("motions_processed", "annots").replace("person1/", "").replace("npy", "txt")
@@ -86,13 +101,23 @@ class InterHumanDataset(data.Dataset):
                         continue
 
                     if self.cache:
-                        self.motion_dict[index] = [motion1, motion2]
-                        self.motion_dict[index+1] = [motion1_swap, motion2_swap]
+                        if reactive:
+                            if swap_persons:
+                                self.motion_dict[index] = [motion2, motion1]
+                            else:
+                                self.motion_dict[index] = [motion1, motion2]
+                        else:
+                            self.motion_dict[index] = [motion1, motion2]                
+                            self.motion_dict[index+1] = [motion1_swap, motion2_swap]
                     else:
-                        self.motion_dict[index] = [file_path_person1, file_path_person2]
-                        self.motion_dict[index + 1] = [file_path_person1, file_path_person2]
-
-
+                        if reactive:
+                            if swap_persons:
+                                self.motion_dict[index] = [file_path_person2, file_path_person1]
+                            else:
+                                self.motion_dict[index] = [file_path_person1, file_path_person2]
+                        else:
+                            self.motion_dict[index] = [file_path_person1, file_path_person2]
+                            self.motion_dict[index + 1] = [file_path_person1, file_path_person2]
 
                     self.data_list.append({
                         # "idx": idx,
@@ -101,7 +126,7 @@ class InterHumanDataset(data.Dataset):
                         "swap":False,
                         "texts":texts
                     })
-                    if opt.MODE == "train":
+                    if opt.MODE == "train" and not reactive:
                         self.data_list.append({
                             # "idx": idx,
                             "name": motion_name+"_swap",
@@ -109,8 +134,11 @@ class InterHumanDataset(data.Dataset):
                             "swap": True,
                             "texts": texts_swap
                         })
-
-                    index += 2
+                    
+                    if reactive:
+                        index += 1
+                    else:
+                        index += 2
 
         print("total dataset: ", len(self.data_list))
 
@@ -207,7 +235,7 @@ if __name__ == "__main__":
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
 
-    opt = config['interhuman']
+    opt = config['train_set']
     
     from types import SimpleNamespace
     opt = SimpleNamespace(**opt)

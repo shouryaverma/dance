@@ -1,5 +1,5 @@
 GENERAL:
-  EXP_NAME: duet10_both_juke_infer
+  EXP_NAME: duet20_text_juke_infer
   CHECKPOINT: ./checkpoints
   LOG_DIR: ./log
 

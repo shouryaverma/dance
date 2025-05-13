@@ -245,9 +245,9 @@ if __name__ == '__main__':
     replication_times = 5 # 20
 
     batch_size = 4
-    data_cfg = data_cfg = get_config("/home/verma198/Public/dance/configs/datasets_duet.yaml").test_set
+    data_cfg = data_cfg = get_config("configs/datasets_duet_juke_prerit.yaml").test_set
 
-    cfg_path_list = ["/home/verma198/Public/dance/configs/model_duet_debug.yaml"]
+    cfg_path_list = ["configs/model_duet_both_juke.yaml"]
     print(cfg_path_list)
 
     eval_motion_loaders = {}
@@ -286,7 +286,7 @@ if __name__ == '__main__':
 
     device = torch.device('cuda:%d' % 0 if torch.cuda.is_available() else 'cpu')
     gt_loader, gt_dataset = get_dataset_motion_loader(data_cfg, batch_size)
-    evalmodel_cfg = get_config("/home/verma198/Public/dance/configs/eval_duet_debug.yaml")
+    evalmodel_cfg = get_config("configs/eval_duet_debug.yaml")
     eval_wrapper = EvaluatorModelWrapper(evalmodel_cfg, device)
 
     log_file = f'./evaluation_{1}.log'

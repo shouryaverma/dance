@@ -3,11 +3,11 @@
 #SBATCH -A bera89-k
 #SBATCH --nodes=1 --gpus-per-node=1 
 #SBATCH --cpus-per-task=32
-#SBATCH --job-name duet20_text_juke
+#SBATCH --job-name eval_duet20_both_juke
 #SBATCH --constraint=K
 #SBATCH --time=7-00:00:00
-#SBATCH --output=slurm_logs/duet20_text_juke.log
-#SBATCH --error=slurm_logs/duet20_text_juke.err
+#SBATCH --output=slurm_logs/eval_duet20_both_juke.log
+#SBATCH --error=slurm_logs/eval_duet20_both_juke.err
 #SBATCH --ntasks-per-node=1
 
 # Load necessary modules (if required)
@@ -18,6 +18,6 @@ conda activate /depot/bera89/apps/dance
 GPU_MONITOR_PID=$!
 
 # Run the Python script
-python tools/train_text2duet.py 
+python tools/eval_text2duet.py 
 
 kill $GPU_MONITOR_PID

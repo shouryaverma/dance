@@ -182,9 +182,9 @@ def manual_test(litmodel, test_dataloader):
     return {"status": "Completed test"}
 
 if __name__ == '__main__':
-    model_cfg = get_config("configs/model_duet_debug.yaml")
+    model_cfg = get_config("configs/model_duet_text_juke.yaml")
     train_cfg = get_config("configs/infer_duet_debug.yaml")
-    test_data_cfg = get_config("configs/datasets_duet.yaml").test_set
+    test_data_cfg = get_config("configs/datasets_duet_juke_prerit.yaml").test_set
     datamodule = DataModule(None, None, test_data_cfg, train_cfg.TRAIN.BATCH_SIZE, train_cfg.TRAIN.NUM_WORKERS)
     datamodule.setup()
     model = build_models(model_cfg)

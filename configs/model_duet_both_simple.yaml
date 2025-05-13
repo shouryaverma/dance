@@ -11,7 +11,9 @@ LATENT_DIM: 512
 FF_SIZE: 1024
 MUSIC_DIM: 54
 ACTIVATION: gelu
-CHECKPOINT: #/home/verma198/Public/dance/checkpoints/duet10_both_juke/model/model=DuetModel-epoch=599-step=3600.ckpt
+CHECKPOINT: /scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/checkpoints/duet20_both_simple/model/epoch_epoch=2199.ckpt
+
+#/home/verma198/Public/dance/checkpoints/duet10_both_juke/model/model=DuetModel-epoch=599-step=3600.ckpt
 
 DIFFUSION_STEPS: 200
 BETA_SCHEDULER: cosine
@@ -28,4 +30,4 @@ STRATEGY: ddim50
 CFG_WEIGHT: 3.5
 
 USE_TEXT: True
-USE_MUSIC: False
+USE_MUSIC: True
