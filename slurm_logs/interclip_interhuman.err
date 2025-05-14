@@ -10731,3 +10731,35 @@ The default value of dim will change to agree with that of linalg.cross in a fut
 Please either pass the dim explicitly or simply use torch.linalg.cross.
 The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at ../aten/src/ATen/native/Cross.cpp:62.)
   v = torch.cross(v0, v1)
+/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/tools/../common/quaternion.py:394: UserWarning: Using torch.cross without specifying the dim arg is deprecated.
+Please either pass the dim explicitly or simply use torch.linalg.cross.
+The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at ../aten/src/ATen/native/Cross.cpp:62.)
+  v = torch.cross(v0, v1)
+/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/tools/../common/quaternion.py:394: UserWarning: Using torch.cross without specifying the dim arg is deprecated.
+Please either pass the dim explicitly or simply use torch.linalg.cross.
+The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at ../aten/src/ATen/native/Cross.cpp:62.)
+  v = torch.cross(v0, v1)
+/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/tools/../common/quaternion.py:394: UserWarning: Using torch.cross without specifying the dim arg is deprecated.
+Please either pass the dim explicitly or simply use torch.linalg.cross.
+The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at ../aten/src/ATen/native/Cross.cpp:62.)
+  v = torch.cross(v0, v1)
+/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/tools/../common/quaternion.py:394: UserWarning: Using torch.cross without specifying the dim arg is deprecated.
+Please either pass the dim explicitly or simply use torch.linalg.cross.
+The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at ../aten/src/ATen/native/Cross.cpp:62.)
+  v = torch.cross(v0, v1)
+/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/tools/../common/quaternion.py:394: UserWarning: Using torch.cross without specifying the dim arg is deprecated.
+Please either pass the dim explicitly or simply use torch.linalg.cross.
+The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at ../aten/src/ATen/native/Cross.cpp:62.)
+  v = torch.cross(v0, v1)
+/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/tools/../common/quaternion.py:394: UserWarning: Using torch.cross without specifying the dim arg is deprecated.
+Please either pass the dim explicitly or simply use torch.linalg.cross.
+The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at ../aten/src/ATen/native/Cross.cpp:62.)
+  v = torch.cross(v0, v1)
+/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/tools/../common/quaternion.py:394: UserWarning: Using torch.cross without specifying the dim arg is deprecated.
+Please either pass the dim explicitly or simply use torch.linalg.cross.
+The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at ../aten/src/ATen/native/Cross.cpp:62.)
+  v = torch.cross(v0, v1)
+/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/tools/../common/quaternion.py:394: UserWarning: Using torch.cross without specifying the dim arg is deprecated.
+Please either pass the dim explicitly or simply use torch.linalg.cross.
+The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at ../aten/src/ATen/native/Cross.cpp:62.)
+  v = torch.cross(v0, v1)

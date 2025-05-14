@@ -72,7 +72,7 @@ class DataModule(pl.LightningDataModule):
                 self.val_dataset = InterHumanDataset(self.val_cfg)
             if self.test_cfg is not None:
                 self.test_dataset = InterHumanDataset(self.test_cfg)
-        if (self.cfg is not None and self.cfg.NAME == "DD100") or self.test_cfg.NAME == "DD100":
+        elif (self.cfg is not None and self.cfg.NAME == "DD100") or self.test_cfg.NAME == "DD100":
             if self.cfg is not None:
                 self.train_dataset = DD100(self.cfg, self.cfg.music_root, self.cfg.motion_root, self.cfg.MODE)
             if self.val_cfg is not None:
