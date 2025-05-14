@@ -167,7 +167,7 @@ def build_models(cfg):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Process a string input.")
-    parser.add_argument("--model_cfg", type=str, default="configs/eval_model.yaml", help="")
+    parser.add_argument("--model_cfg", type=str, default="configs/eval_duet_debug.yaml", help="")
     parser.add_argument("--train_cfg", type=str, default="configs/train_interclip_full.yaml", help="")
     args = parser.parse_args()
     print(args)
@@ -176,10 +176,10 @@ if __name__ == '__main__':
     train_cfg = get_config(args.train_cfg)
     # model_cfg = get_config("configs/eval_model.yaml")
     # train_cfg = get_config("configs/train_interclip.yaml")
-    data_cfg = get_config("configs/datasets_duet.yaml").train_set
-    val_data_cfg = get_config("configs/datasets_duet.yaml").test_set
+    data_cfg = get_config("configs/datasets_interhuman_prerit.yaml").train_set
+    val_data_cfg = get_config("configs/datasets_interhuman_prerit.yaml").test_set
 
-    datamodule = DataModule(data_cfg, val_data_cfg, None, train_cfg.TRAIN.BATCH_SIZE, train_cfg.TRAIN.NUM_WORKERS)
+    datamodule = DataModule(data_cfg, val_data_cfg, val_data_cfg , train_cfg.TRAIN.BATCH_SIZE, train_cfg.TRAIN.NUM_WORKERS)
     model = build_models(model_cfg)
 
     if train_cfg.TRAIN.RESUME:
@@ -205,9 +205,9 @@ if __name__ == '__main__':
                                                        save_top_k = -1)
     trainer = pl.Trainer(
         default_root_dir=litmodel.model_dir,
-        devices="auto", accelerator='gpu',
+        devices=1, accelerator='gpu',
         max_epochs=train_cfg.TRAIN.EPOCH,
-        strategy=DDPStrategy(find_unused_parameters=True),
+        strategy=None,
         precision=32,
         callbacks=[checkpoint_callback],
         check_val_every_n_epoch = train_cfg.TRAIN.SAVE_EPOCH,

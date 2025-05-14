@@ -1,5 +1,5 @@
 GENERAL:
-  EXP_NAME: interhuman1
+  EXP_NAME: dd100_simple
   CHECKPOINT: ./checkpoints
   LOG_DIR: ./log
 

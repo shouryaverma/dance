@@ -244,7 +244,7 @@ if __name__ == '__main__':
     diversity_times = 3 # 100
     replication_times = 5 # 20
 
-    batch_size = 4
+    batch_size = 100
     data_cfg = data_cfg = get_config("configs/datasets_duet_juke_prerit.yaml").test_set
 
     cfg_path_list = ["configs/model_duet_both_juke.yaml"]

@@ -1,0 +1,26 @@
+train_set:
+    NAME: DD100
+    music_root: '/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/data_folders/DuoLando/DD100/music'
+    motion_root: '/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/data_folders/DuoLando/DD100/motion'
+    MOTION_REP: global
+    MODE: train
+    CACHE: True
+    music_rep: 'simple'
+
+val_set:
+    NAME: DD100
+    music_root: '/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/data_folders/DuoLando/DD100/music'
+    motion_root: '/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/data_folders/DuoLando/DD100/motion'
+    MOTION_REP: global
+    MODE: test
+    CACHE: True
+    music_rep: 'simple'
+
+test_set:
+    NAME: DD100
+    music_root: '/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/data_folders/DuoLando/DD100/music'
+    motion_root: '/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/data_folders/DuoLando/DD100/motion'
+    MOTION_REP: global
+    MODE: test
+    CACHE: True
+    music_rep: 'simple'

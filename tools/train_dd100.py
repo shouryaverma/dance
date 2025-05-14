@@ -279,9 +279,9 @@ def build_models(cfg):
 import argparse
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Process a string input.")
-    parser.add_argument("--model_cfg", type=str, default="configs/model_interhuman.yaml", help="")
-    parser.add_argument("--train_cfg", type=str, default="configs/train_interhuman.yaml", help="")
-    parser.add_argument("--data_cfg", type=str, default="configs/datasets_interhuman_prerit.yaml", help="")
+    parser.add_argument("--model_cfg", type=str, default="configs/model_dd100_simple.yaml", help="")
+    parser.add_argument("--train_cfg", type=str, default="configs/train_dd100_simple.yaml", help="")
+    parser.add_argument("--data_cfg", type=str, default="configs/datasets_dd100_simple_prerit.yaml", help="")
     args = parser.parse_args()
     print(args)
     
@@ -291,7 +291,7 @@ if __name__ == '__main__':
     val_data_cfg = get_config(args.data_cfg).val_set
     test_data_cfg = get_config(args.data_cfg).test_set
 
-    datamodule = DataModule(data_cfg, val_data_cfg, test_data_cfg, train_cfg.TRAIN.BATCH_SIZE, train_cfg.TRAIN.NUM_WORKERS)
+    datamodule = DataModule(data_cfg, val_data_cfg, test_data_cfg , train_cfg.TRAIN.BATCH_SIZE, train_cfg.TRAIN.NUM_WORKERS)
     model = build_models(model_cfg)
 
     if train_cfg.TRAIN.RESUME:
@@ -343,8 +343,7 @@ if __name__ == '__main__':
         check_val_every_n_epoch = train_cfg.TRAIN.SAVE_EPOCH,
         num_sanity_val_steps=1 # 1
     )
-    #ckpt_model = litmodel.model_dir + "/last.ckpt"
-    ckpt_model = "/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/checkpoints/interhuman/model/epoch_epoch=0199.ckpt"
+    ckpt_model = litmodel.model_dir + "/last.ckpt"
     if os.path.exists(ckpt_model):
         print('resume from checkpoint')
         trainer.fit(model=litmodel, datamodule=datamodule, ckpt_path=ckpt_model)

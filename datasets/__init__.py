@@ -8,6 +8,7 @@ from datasets.evaluator import (
     get_motion_loader)
 from .text2duet import Text2Duet
 from .interhuman import InterHumanDataset
+from .DD100 import DD100
 # from .dataloader import build_dataloader
 
 __all__ = [
@@ -22,6 +23,8 @@ def build_loader(cfg, data_cfg):
         train_dataset = Text2Duet(data_cfg, data_cfg.music_root, data_cfg.motion_root, data_cfg.text_root, data_cfg.MODE)
     elif data_cfg.NAME == "interhuman":
         train_dataset = InterHumanDataset(data_cfg)
+    elif data_cfg.NAME == "DD100":
+        train_dataset = DD100(data_cfg, data_cfg.music_root, data_cfg.motion_root, data_cfg.MODE)
     else:
         raise NotImplementedError
 
@@ -69,6 +72,13 @@ class DataModule(pl.LightningDataModule):
                 self.val_dataset = InterHumanDataset(self.val_cfg)
             if self.test_cfg is not None:
                 self.test_dataset = InterHumanDataset(self.test_cfg)
+        if (self.cfg is not None and self.cfg.NAME == "DD100") or self.test_cfg.NAME == "DD100":
+            if self.cfg is not None:
+                self.train_dataset = DD100(self.cfg, self.cfg.music_root, self.cfg.motion_root, self.cfg.MODE)
+            if self.val_cfg is not None:
+                self.val_dataset = DD100(self.val_cfg, self.val_cfg.music_root, self.val_cfg.motion_root, self.val_cfg.MODE)
+            if self.test_cfg is not None:
+                self.test_dataset = DD100(self.test_cfg, self.test_cfg.music_root, self.test_cfg.motion_root, self.test_cfg.MODE)
                 
         else:
             raise NotImplementedError

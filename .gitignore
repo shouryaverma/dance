@@ -1,5 +1,6 @@
 checkpoints
 results
+data_folders
 __pycache__
 .idea
 venv

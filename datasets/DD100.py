@@ -112,21 +112,20 @@ def process_motion_np(motion, rotations, feet_thre = 0.001, n_joints =  22):
 
     return data, root_quat_init, root_pose_init_xz[None]
 
-class Text2Duet(Dataset):
-    def __init__(self, cfg, music_root, motion_root, text_root, split='train', fps = 30, dtype='pos3d', music_dance_rate=1):
-        self.dances = {'rotmatl':[], 'rotmatf':[], 'pos3dl':[], 'pos3df':[], 'music':[], 'text': [], 'music_wav_path': []}
+class DD100(Dataset):
+    def __init__(self, cfg, music_root, motion_root, split='train', fps = 30, dtype='pos3d', music_dance_rate=1):
+        self.dances = {'rotmatl':[], 'rotmatf':[], 'pos3dl':[], 'pos3df':[], 'music':[], 'music_wav_path': []}
         dtypes = ['rotmat', 'pos3d']
         self.cfg = cfg
         self.dtype = dtype
         self.names = []
-        self.text_root = text_root
         self.music_root = music_root
         self.motion_root = motion_root
         self.music_files = {}
         self.agent_files = {'leader':{}, 'follower':{}}
-        self.text_files = {}
-        self.music_seqs = {}
-        skip = int(120/fps)
+        #self.text_files = {}
+        #self.music_seqs = {}
+        skip = int(30/fps)
         self.max_len = self.max_length = 300
 
         # We need format: joint positions, joint velocity, joint rotations, foot contacts
@@ -139,22 +138,22 @@ class Text2Duet(Dataset):
             raise ValueError("split should be either a string or a list of strings")
         agent_files = self.agent_files
         music_files = self.music_files
-        text_files = self.text_files
+        #text_files = self.text_files
         # music files, text files and motion files are ready
         for take in agent_files['follower']:
             # print(take)
-            if take not in agent_files['leader'] or take not in music_files or take not in text_files:
+            if take not in agent_files['leader'] or take not in music_files:
                 continue
             # music:
             music_path = music_files[take]
             np_music = np.load(music_path).astype(np.float32) # music features
             
             #load the txt file from text_path
-            text_path = text_files[take]
-            text = open(text_path, "r").readlines()[0] # first line
+            #text_path = text_files[take]
+            #text = open(text_path, "r").readlines()[0] # first line
             # original music sequence
-            music_wav_path = self.music_seqs[take]
-            self.dances['music_wav_path'].append(music_wav_path)
+            #music_wav_path = self.music_seqs[take]
+            #self.dances['music_wav_path'].append(music_wav_path)
             for dtype_folder in dtypes:
                 this_pair = {}
                 for agent in agent_files:
@@ -185,15 +184,22 @@ class Text2Duet(Dataset):
                 self.dances[dtype_folder+'f'].append(fdance[:seq_len])
                 if dtype_folder != 'rotmat':
                     self.dances['music'].append(np_music[:seq_len])
-                    self.dances['text'].append(text)
+                    #self.dances['text'].append(text)
                     self.names.append(take)
         # NOTE: now we have the primary data
         print('dataset first-round loading done')
-        self.dances_processed = {'motionl':[], 'motionf':[], 'music':[], 'text': [], 'length':[], 'music_wav_path': []}
-        for index in tqdm(range(len(self.dances['text']))):
-            music_wav_path = self.dances['music_wav_path'][index]
+        
+        print(f"# rotmatl: {len(self.dances['rotmatl'])}")
+        print(f"# rotmatf: {len(self.dances['rotmatf'])}")
+        print(f"# pos3dl: {len(self.dances['pos3dl'])}")
+        print(f"# pos3df: {len(self.dances['pos3df'])}")
+        print(f"# music: {len(self.dances['music'])}")
+        
+        self.dances_processed = {'motionl':[], 'motionf':[], 'music':[], 'length':[], 'music_wav_path': []}
+        for index in tqdm(range(len(self.dances['music']))):
+            #music_wav_path = self.dances['music_wav_path'][index]
             music = self.dances['music'][index]
-            text = self.dances['text'][index]
+            #text = self.dances['text'][index]
             rotation_6d_l = self.dances['rotmatl'][index]
             rotation_6d_f = self.dances['rotmatf'][index]
             pos3d_l = self.dances['pos3dl'][index]
@@ -211,47 +217,51 @@ class Text2Duet(Dataset):
             self.dances_processed['motionl'].append(motion1)
             self.dances_processed['motionf'].append(motion2)
             self.dances_processed['music'].append(music)
-            self.dances_processed['text'].append(text)
+            #self.dances_processed['text'].append(text)
             self.dances_processed['length'].append(len(motion1))
-            self.dances_processed['music_wav_path'].append(music_wav_path)
+            #self.dances_processed['music_wav_path'].append(music_wav_path)
             
     
     def load_split(self, split):
-        if self.cfg.music_rep == "simple":
-            for genre in os.listdir(os.path.join(self.music_root,  'feature', split)):
-                for root, dirs, mnames in os.walk(os.path.join(self.music_root,  'feature', split, genre)):
-                    for mname in mnames:
-                        path = os.path.join(root, mname)
-                        self.music_files[mname[:-4]] = path
+        if self.cfg.music_rep == "simple":           
+            for mname in os.listdir(os.path.join(self.music_root,  'feature', split)):
+                path = os.path.join(self.music_root, 'feature', split, mname)
+                self.music_files[mname[:-4]] = path
+                
         elif self.cfg.music_rep == "jukebox":
-            for genre in os.listdir(os.path.join(self.music_root,  'Juke_features', split)):
-                for root, dirs, mnames in os.walk(os.path.join(self.music_root,  'Juke_features', split, genre)):
-                    for mname in mnames:
-                        path = os.path.join(root, mname)
-                        self.music_files[mname[:-4]] = path
+            for mname in os.listdir(os.path.join(self.music_root,  'Juke_features', split)):
+                path = os.path.join(self.music_root, 'Juke_features', split, mname)
+                self.music_files[mname[:-4]] = path
+
+        # for mname in os.listdir(os.path.join(self.music_root,  'mp3', 'all')):
+        #     path = os.path.join(self.music_root, 'mp3', 'all', mname)
+        #     self.music_seqs[mname[:-4]] = path
+            
 
 
-        for genre in os.listdir(os.path.join(self.music_root,  'WAV', 'all')):
-            for root, dirs, mnames in os.walk(os.path.join(self.music_root,  'WAV', 'all', genre)): # split
-                for mname in mnames:
-                    path = os.path.join(root, mname)
-                    self.music_seqs[mname[:-4]] = path
+        # for genre in os.listdir(os.path.join(self.text_root, 'processed', split)):
+        #     for root, dirs, tnames in os.walk(os.path.join(self.text_root,  'processed', split, genre)):
+        #         for tname in tnames:
+        #             path = os.path.join(root, tname)
+        #             self.text_files[tname[:-4]] = path
+        
+        for fname in os.listdir(os.path.join(self.motion_root, 'pos3d', split)): 
+            path = os.path.join(self.motion_root, 'pos3d', split, fname)
+            if not os.path.isfile(path):
+                continue  # Skip directories or non-files
+            if path.endswith('_00.npy'):
+                self.agent_files['follower'][fname[:-7]] = path
+            elif path.endswith('_01.npy'):
+                self.agent_files['leader'][fname[:-7]] = path
 
-
-        for genre in os.listdir(os.path.join(self.text_root, 'processed', split)):
-            for root, dirs, tnames in os.walk(os.path.join(self.text_root,  'processed', split, genre)):
-                for tname in tnames:
-                    path = os.path.join(root, tname)
-                    self.text_files[tname[:-4]] = path
-
-        for genre in os.listdir(os.path.join(self.motion_root,  'pos3d', split)):
-            for root, dirs, fnames in os.walk(os.path.join(self.motion_root,  'pos3d', split, genre)):
-                for fname in fnames:
-                    path = os.path.join(root, fname)
-                    if path.endswith('_Follow.npy'):
-                        self.agent_files['follower'][fname[:-11]] = path
-                    elif path.endswith('_Lead.npy'):
-                        self.agent_files['leader'][fname[:-9]] = path
+        # for genre in os.listdir(os.path.join(self.motion_root,  'pos3d', split)):
+        #     for root, dirs, fnames in os.walk(os.path.join(self.motion_root,  'pos3d', split, genre)):
+        #         for fname in fnames:
+        #             path = os.path.join(root, fname)
+        #             if path.endswith('_00.npy'):
+        #                 self.agent_files['follower'][fname[:-7]] = path
+        #             elif path.endswith('_01.npy'):
+        #                 self.agent_files['leader'][fname[:-7]] = path
 
     def __len__(self):
         return len(self.dances['pos3dl'])
@@ -261,7 +271,7 @@ class Text2Duet(Dataset):
         motion1 = self.dances_processed['motionl'][index]
         motion2 = self.dances_processed['motionf'][index]
         music = self.dances_processed['music'][index]
-        text = self.dances_processed['text'][index]
+        #text = self.dances_processed['text'][index]
         length = self.dances_processed['length'][index]
         
         # Padding motions to max_len
@@ -276,10 +286,10 @@ class Text2Duet(Dataset):
             'motion1': motion1,
             'motion2': motion2,
             'music': music,
-            'text': text,
+            'text': "Placeholder",
             'length': length,
-            'fname':self.names[index],
-            'music_wav_path': self.dances_processed['music_wav_path'][index]
+            'fname':self.names[index]
+            #'music_wav_path': self.dances_processed['music_wav_path'][index]
         }
         # return item_dict['motion1'], item_dict['motion2'], item_dict['music'], item_dict['text'], item_dict['length']
         return item_dict
@@ -302,10 +312,8 @@ def plot_t2m(mp_data, result_path, caption):
 # unit test
 if __name__ == '__main__':
 
-    music_root = '/scratch/gilbreth/gupta596/MotionGen/Text2Duet/data_split/music'
-    motion_root = '/scratch/gilbreth/gupta596/MotionGen/Text2Duet/data_split/motion'
-    text_root = '/scratch/gilbreth/gupta596/MotionGen/Text2Duet/data_split/text'
-    
+    music_root = '/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/data_folders/DuoLando/DD100/music'
+    motion_root = '/scratch/gilbreth/gupta596/MotionGen/DualFlow/dance/data_folders/DuoLando/DD100/motion'
 
     cfg = {
         'music_rep': 'simple'
@@ -313,7 +321,7 @@ if __name__ == '__main__':
     from types import SimpleNamespace
     cfg = SimpleNamespace(**cfg)
     
-    t2d = Text2Duet(cfg, music_root, motion_root, text_root, split='train', dtype='pos3d', music_dance_rate=1)
+    t2d = DD100(cfg, music_root, motion_root, split='train', dtype='pos3d', music_dance_rate=1)
     print(len(t2d))
     print(t2d[0])
     item_dict = t2d[0] # music: T-1, 54
