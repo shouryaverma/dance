@@ -7,10 +7,9 @@ from datasets.evaluator import (
     get_dataset_motion_loader,
     get_motion_loader)
 from .text2duet import Text2Duet
-# from .dataloader import build_dataloader
 
 __all__ = [
-    'InterHumanDataset', 'EvaluationDataset',
+    'EvaluationDataset',
     'get_dataset_motion_loader', 'get_motion_loader']
 
 def build_loader(cfg, data_cfg):

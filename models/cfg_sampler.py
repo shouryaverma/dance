@@ -7,7 +7,7 @@ class ClassifierFreeSampleModel(nn.Module):
         self.model = model  # model is the actual model to run
         self.s = cfg_scale
 
-    def forward(self, x, timesteps, cond=None, mask=None, music=None):
+    def forward(self, x, timesteps, cond=None, mask=None, music=None, mode="duet"):
         B, T, D = x.shape
 
         x_combined = torch.cat([x, x], dim=0)
@@ -18,12 +18,11 @@ class ClassifierFreeSampleModel(nn.Module):
             mask = torch.cat([mask, mask], dim=0)
         if music is not None:
             music = torch.cat([music, music], dim=0)
-            out = self.model(x_combined, timesteps_combined, cond=cond, mask=mask, music=music)
-        else:
-            out = self.model(x_combined, timesteps_combined, cond=cond, mask=mask)
+
+        out = self.model(x_combined, timesteps_combined, cond=cond, mask=mask, music=music, mode=mode)
 
         out_cond = out[:B]
         out_uncond = out[B:]
 
-        cfg_out = self.s *  out_cond + (1-self.s) *out_uncond
+        cfg_out = self.s * out_cond + (1 - self.s) * out_uncond
         return cfg_out

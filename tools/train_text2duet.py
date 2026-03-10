@@ -41,31 +41,11 @@ class LitTrainModel(pl.LightningModule):
 
     def _configure_optim(self):
         optimizer = optim.AdamW(self.model.parameters(), lr=float(self.cfg.TRAIN.LR), weight_decay=self.cfg.TRAIN.WEIGHT_DECAY)
-        scheduler = CosineWarmupScheduler(optimizer=optimizer, warmup=10, max_iters=self.cfg.TRAIN.EPOCH, verbose=True)
+        scheduler = CosineWarmupScheduler(optimizer=optimizer, warmup=10, max_iters=self.cfg.TRAIN.EPOCH)
         return [optimizer], [scheduler]
 
     def configure_optimizers(self):
         return self._configure_optim()
-
-    # def plot_motion_intergen(self, motion1, motion2, length, result_root, caption, mode = 'train', motion = 'recon', idx = 0):
-    #     # only plot in the main process
-    #     if self.device.index != 0:
-    #         return
-    #     assert motion in ['gen', 'gt', 'recon'], motion
-    #     assert mode in ['train', 'val'], mode
-    #     motion1 = motion1.cpu().numpy()[:length]
-    #     motion2 = motion2.cpu().numpy()[:length]
-    #     mp_data = [motion1, motion2]
-    #     mp_joint = []
-    #     for i, data in enumerate(mp_data):
-    #         if i == 0:
-    #             joint = data[:,:22*3].reshape(-1,22,3)
-    #         else:
-    #             joint = data[:,:22*3].reshape(-1,22,3)
-    #         mp_joint.append(joint)
-
-    #     result_path = Path(result_root) / f"{mode}_{self.current_epoch}_{idx}_{motion}.mp4"
-    #     plot_3d_motion(str(result_path), paramUtil.t2m_kinematic_chain, mp_joint, title=caption, fps=30)
 
     def plot_motion_intergen(self, gt_motion1, gt_motion2, gen_motion1, gen_motion2, length, result_root, caption, mode='train', idx=0):
         # only plot in the main process
@@ -87,116 +67,65 @@ class LitTrainModel(pl.LightningModule):
         result_path = Path(result_root) / f"{mode}_{self.current_epoch}_{idx}_combined.mp4"
         plot_3d_motion(str(result_path), paramUtil.t2m_kinematic_chain, mp_joint, title=caption, fps=30)
     
-    def text_length_to_motion_torch(self, text, music, length):
-        # text: 1,*
-        # length: 1,
+    def text_length_to_motion_torch(self, text, music, length, lead_motion=None):
         input_batch = {}
         input_batch["text"] = text
         input_batch["music"] = music
         input_batch["motion_lens"] = length
-        # For ReactModel, we need the lead dancer's motion from the test batch
-        if self.model_cfg.NAME == "ReactModel":
-            # During inference, we'll use ground truth leader motion from the test batch
-            # This assumes the lead motion is passed in the batch from sample_text
-            if hasattr(self, '_temp_lead_motion'):
-                input_batch["lead_motion"] = self._temp_lead_motion
-                input_batch["follower_motion"] = self._temp_follower_motion 
-                delattr(self, '_temp_lead_motion')  # Clean up after use
-                delattr(self, '_temp_follower_motion')  # Clean up after use
+        if lead_motion is not None:
+            input_batch["task_mode"] = "react"
+            input_batch["lead_motion"] = lead_motion
+        else:
+            input_batch["task_mode"] = "duet"
         output_batch = self.model.forward_test(input_batch)
-        motions_output = output_batch["output"].reshape(output_batch["output"].shape[0], output_batch["output"].shape[1], 2, -1)
+        motions_output = output_batch["output"].reshape(
+            output_batch["output"].shape[0], output_batch["output"].shape[1], 2, -1)
         motions_output = self.normalizerTorch.backward(motions_output.detach())
-        return motions_output[:,:,0], motions_output[:,:,1]
+        return motions_output[:, :, 0], motions_output[:, :, 1]
     
-    # def sample_text(self, batch_data, batch_idx, mode):
-    #     motion1, motion2, music, text, motion_lens = batch_data['motion1'], \
-    #         batch_data['motion2'], batch_data['music'], batch_data['text'], batch_data['length']
-        
-    #     if self.model_cfg.NAME == "DuetModel":
-    #         # Duet dancing: generate both dancer motions simultaneously
-    #         motion_gen_1, motion_gen_2 = self.text_length_to_motion_torch(text[0:1], music[0:1], motion_lens[0:1])
-            
-    #         # Visualize ground truth
-    #         self.plot_motion_intergen(motion1[0], motion2[0], 
-    #                         motion_lens[0], self.vis_dir, text[0],
-    #                         mode=mode, motion='gt', idx=batch_idx)
-            
-    #         # Visualize generated motions
-    #         self.plot_motion_intergen(motion_gen_1[0], motion_gen_2[0], 
-    #                         motion_lens[0], self.vis_dir, text[0],
-    #                         mode=mode, motion='gen', idx=batch_idx)
-        
-    #     elif self.model_cfg.NAME == "ReactModel":
-    #         # Reactive dancing: use ground truth leader (motion1) and generate follower (motion2)
-            
-    #         # Store lead motion temporarily for the text_length_to_motion_torch function
-    #         self._temp_lead_motion = motion1[0:1]
-            
-    #         # Generate only the follower's motion
-    #         _, motion_gen_follower = self.text_length_to_motion_torch(text[0:1], music[0:1], motion_lens[0:1])
-            
-    #         # Visualize ground truth
-    #         self.plot_motion_intergen(motion1[0], motion2[0], 
-    #                         motion_lens[0], self.vis_dir, text[0],
-    #                         mode=mode, motion='gt', idx=batch_idx)
-            
-    #         # Visualize leader (ground truth) with generated follower
-    #         self.plot_motion_intergen(motion1[0], motion_gen_follower[0], 
-    #                         motion_lens[0], self.vis_dir, text[0],
-    #                         mode=mode, motion='gen', idx=batch_idx)
-
     def sample_text(self, batch_data, batch_idx, mode):
         motion1, motion2, music, text, motion_lens = batch_data['motion1'], \
             batch_data['motion2'], batch_data['music'], batch_data['text'], batch_data['length']
-        
-        if self.model_cfg.NAME == "DuetModel":
-            # Generate both dancer motions
-            motion_gen_1, motion_gen_2 = self.text_length_to_motion_torch(text[0:1], music[0:1], motion_lens[0:1])
-            
-            # Plot both ground truth and generated in one visualization
-            self.plot_motion_intergen(
-                motion1[0], motion2[0],          # Ground truth motions
-                motion_gen_1[0], motion_gen_2[0], # Generated motions
-                motion_lens[0], self.vis_dir, text[0],
-                mode=mode, idx=batch_idx
-            )
-        
-        elif self.model_cfg.NAME == "ReactModel":
-            # Store lead motion for generation
-            self._temp_lead_motion = motion1[0:1]
-            self._temp_follower_motion = motion2[0:1]
-            
-            # Generate follower motion
-            motion_gen_lead, motion_gen_follower = self.text_length_to_motion_torch(text[0:1], music[0:1], motion_lens[0:1])
-            
-            # Plot both ground truth and generated in one visualization
-            # For ReactModel, lead is the same for both GT and generated
-            self.plot_motion_intergen(
-                motion1[0], motion2[0],          # Ground truth lead and follower
-                motion_gen_lead[0], motion_gen_follower[0], # GT lead and generated follower
-                motion_lens[0], self.vis_dir, text[0],
-                mode=mode, idx=batch_idx
-            )
+
+        # Duet: generate both dancers
+        motion_gen_1, motion_gen_2 = self.text_length_to_motion_torch(
+            text[0:1], music[0:1], motion_lens[0:1])
+        self.plot_motion_intergen(
+            motion1[0], motion2[0],
+            motion_gen_1[0], motion_gen_2[0],
+            motion_lens[0], self.vis_dir, text[0],
+            mode=mode + "_duet", idx=batch_idx
+        )
+
+        # React: fix leader, generate follower
+        motion_gen_lead, motion_gen_follower = self.text_length_to_motion_torch(
+            text[0:1], music[0:1], motion_lens[0:1], lead_motion=motion1[0:1])
+        self.plot_motion_intergen(
+            motion1[0], motion2[0],
+            motion_gen_lead[0], motion_gen_follower[0],
+            motion_lens[0], self.vis_dir, text[0],
+            mode=mode + "_react", idx=batch_idx
+        )
         
     def forward(self, batch_data):
         motion1, motion2, music, text, motion_lens = batch_data['motion1'], \
             batch_data['motion2'], batch_data['music'], batch_data['text'], batch_data['length']
-        motion1 = motion1.detach().float()  # .to(self.device)
-        motion2 = motion2.detach().float()  # .to(self.device)
+        motion1 = motion1.detach().float()
+        motion2 = motion2.detach().float()
         motions = torch.cat([motion1, motion2], dim=-1)
-
         B, T = motion1.shape[:2]
+
+        # Randomly assign task mode per batch during training
+        task_mode = "react" if torch.rand(1).item() < 0.5 else "duet"
 
         batch = OrderedDict({})
         batch["text"] = text
         batch["music"] = music
         batch["motions"] = motions.reshape(B, T, -1).type(torch.float32)
         batch["motion_lens"] = motion_lens.long()
-        # For ReactModel, add leader's motion as input
-        if self.model_cfg.NAME == "ReactModel":
-            # For reactive dancing, motion1 is considered the leader
+        batch["task_mode"] = task_mode
+        if task_mode == "react":
             batch["lead_motion"] = motion1
-            batch["follower_motion"] = motion2
 
         loss, loss_logs = self.model(batch)
         return loss, loss_logs
@@ -270,8 +199,6 @@ class LitTrainModel(pl.LightningModule):
 def build_models(cfg):
     if cfg.NAME == "DuetModel":
         model = DuetModel(cfg)
-    elif cfg.NAME == "ReactModel":
-        model = ReactModel(cfg)
     else:
         raise NotImplementedError
     return model
@@ -279,9 +206,9 @@ def build_models(cfg):
 import argparse
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Process a string input.")
-    parser.add_argument("--model_cfg", type=str, default="configs/model_duet_debug.yaml", help="")
-    parser.add_argument("--train_cfg", type=str, default="configs/train_duet_debug.yaml", help="")
-    parser.add_argument("--data_cfg", type=str, default="configs/datasets_duet.yaml", help="")
+    parser.add_argument("--model_cfg", type=str, default="/depot/natallah/data/shourya/dance/configs/model_duet_debug.yaml", help="")
+    parser.add_argument("--train_cfg", type=str, default="/depot/natallah/data/shourya/dance/configs/train_duet_debug.yaml", help="")
+    parser.add_argument("--data_cfg", type=str, default="/depot/natallah/data/shourya/dance/configs/datasets_duet.yaml", help="")
     args = parser.parse_args()
     print(args)
     
@@ -294,7 +221,7 @@ if __name__ == '__main__':
     model = build_models(model_cfg)
 
     if train_cfg.TRAIN.RESUME:
-        ckpt = torch.load(train_cfg.TRAIN.RESUME, map_location="cpu")
+        ckpt = torch.load(train_cfg.TRAIN.RESUME, map_location="cpu",weights_only=True)
         for k in list(ckpt["state_dict"].keys()):
             if "model" in k:
                 ckpt["state_dict"][k.replace("model.", "")] = ckpt["state_dict"].pop(k)
@@ -302,7 +229,7 @@ if __name__ == '__main__':
         print("checkpoint state loaded!")
 
     # Count total parameters
-    total_params = sum(p.numel() for p in model.parameters())
+    total_params = sum(p.numel() for p in model.parameters()) 
 
     # Count trainable parameters
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -336,7 +263,7 @@ if __name__ == '__main__':
         accelerator='gpu',
         max_epochs=train_cfg.TRAIN.EPOCH,
         # strategy=DDPStrategy(find_unused_parameters=True),
-        strategy=None,
+        strategy="auto",
         precision=32,
         callbacks=[checkpoint_callback, CustomCheckpointCallback()],
         check_val_every_n_epoch = train_cfg.TRAIN.SAVE_EPOCH,

@@ -61,7 +61,6 @@ class DuetModel(nn.Module):
         self._token_cache = {}
     
     def compute_loss(self, batch):
-        """Compute training loss"""
         batch = self.text_process(batch)
         losses = self.decoder.compute_loss(batch)
         return losses["total"], losses
@@ -76,68 +75,55 @@ class DuetModel(nn.Module):
         return self.compute_loss(batch)
     
     def forward_test(self, batch):
-        """Forward pass during inference"""
         batch = self.text_process(batch)
-        batch.update(self.decode_motion(batch))
+        batch.update(self.decoder(batch))
         return batch
     
     @torch.no_grad()
     def text_process(self, batch):
-        """Process text inputs through CLIP and transformer encoder"""
         device = next(self.clip_transformer.parameters()).device
         raw_text = batch["text"]
-        
-        # Process texts in batch for efficiency
-        text_embeddings = []
         batch_size = len(raw_text)
-        
-        # Check cache for common prompts
-        cache_hits = 0
+
+        # Resolve cache hits, moving tensors to current device if needed
+        cached = {}
         for i, text in enumerate(raw_text):
-            if text in self._token_cache and self._token_cache[text].device == device:
-                text_embeddings.append(self._token_cache[text])
-                cache_hits += 1
-        
-        # If all texts were in cache, skip CLIP processing
-        if cache_hits == batch_size:
-            batch["cond"] = torch.stack(text_embeddings)
+            if text in self._token_cache:
+                cached[i] = self._token_cache[text].to(device)
+
+        if len(cached) == batch_size:
+            batch["cond"] = torch.stack([cached[i] for i in range(batch_size)])
             return batch
-        
-        # Process remaining texts through CLIP
-        with torch.no_grad():
-            # Tokenize all texts at once
-            text_tokens = clip.tokenize(raw_text, truncate=True).to(device)
-            
-            # Embed tokens
-            token_embeds = self.token_embedding(text_tokens).type(self.dtype)
-            pe_tokens = token_embeds + self.positional_embedding.type(self.dtype)
-            
-            # Process through transformer
-            transformer_input = pe_tokens.permute(1, 0, 2)
-            transformer_output = self.clip_transformer(transformer_input)
-            transformer_output = transformer_output.permute(1, 0, 2)
-            
-            # Apply final layer norm
-            clip_features = self.ln_final(transformer_output).type(self.dtype)
-        
-        # Process through our additional transformer
-        enhanced_features = self.clipTransEncoder(clip_features)
-        normalized_features = self.clip_ln(enhanced_features)
-        
-        # Extract conditioning vectors
+
+        # Process all texts through CLIP (simpler and avoids index bookkeeping)
+        text_tokens = clip.tokenize(raw_text, truncate=True).to(device)
+
+        token_embeds = self.token_embedding(text_tokens).type(self.dtype)
+        pe_tokens = token_embeds + self.positional_embedding.type(self.dtype)
+
+        transformer_input = pe_tokens.permute(1, 0, 2)
+        transformer_output = self.clip_transformer(transformer_input)
+        transformer_output = transformer_output.permute(1, 0, 2)
+
+        clip_features = self.ln_final(transformer_output).type(self.dtype)
+
+        features = self.clipTransEncoder(clip_features)
+        features = self.clip_ln(features)
+
         argmax_indices = text_tokens.argmax(dim=-1)
-        batch_indices = torch.arange(enhanced_features.shape[0], device=device)
-        cond_vectors = normalized_features[batch_indices, argmax_indices]
-        
-        # Update cache with new embeddings (limited to conserve memory)
-        if len(self._token_cache) < 100:  # Limit cache size
+        batch_indices = torch.arange(batch_size, device=device)
+        cond_vectors = features[batch_indices, argmax_indices]
+
+        if len(self._token_cache) < 1000:
             for i, text in enumerate(raw_text):
                 if text not in self._token_cache:
-                    self._token_cache[text] = cond_vectors[i].detach().clone()
-        
-        # Store results
+                    self._token_cache[text] = cond_vectors[i].detach().cpu()
+
+        # Overwrite with cached versions where available (they are identical values)
+        for i, vec in cached.items():
+            cond_vectors[i] = vec
+
         batch["cond"] = cond_vectors
-        
         return batch
     
     def clear_cache(self):

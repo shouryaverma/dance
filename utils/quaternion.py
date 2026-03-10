@@ -68,8 +68,8 @@ def qrot(q, v):
     v = v.contiguous().view(-1, 3)
 
     qvec = q[:, 1:]
-    uv = torch.cross(qvec, v, dim=1)
-    uuv = torch.cross(qvec, uv, dim=1)
+    uv = torch.linalg.cross(qvec, v, dim=1)
+    uuv = torch.linalg.cross(qvec, uv, dim=1)
     return (v + 2 * (q[:, :1] * uv + uuv)).view(original_shape)
 
 
@@ -323,10 +323,10 @@ def cont6d_to_matrix(cont6d):
     y_raw = cont6d[..., 3:6]
 
     x = x_raw / torch.norm(x_raw, dim=-1, keepdim=True)
-    z = torch.cross(x, y_raw, dim=-1)
+    z = torch.linalg.cross(x, y_raw, dim=-1)
     z = z / torch.norm(z, dim=-1, keepdim=True)
 
-    y = torch.cross(z, x, dim=-1)
+    y = torch.linalg.cross(z, x, dim=-1)
 
     x = x[..., None]
     y = y[..., None]
@@ -391,7 +391,7 @@ def qbetween(v0, v1):
     assert v0.shape[-1] == 3, 'v0 must be of the shape (*, 3)'
     assert v1.shape[-1] == 3, 'v1 must be of the shape (*, 3)'
 
-    v = torch.cross(v0, v1)
+    v = torch.linalg.cross(v0, v1)
     w = torch.sqrt((v0 ** 2).sum(dim=-1, keepdim=True) * (v1 ** 2).sum(dim=-1, keepdim=True)) + (v0 * v1).sum(dim=-1,
                                                                                                               keepdim=True)
     return qnormalize(torch.cat([w, v], dim=-1))

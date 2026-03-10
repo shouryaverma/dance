@@ -1,6 +1,5 @@
 from os.path import join as pjoin
 from torch.utils.data import Dataset, DataLoader
-from datasets import InterHumanDataset
 from datasets.text2duet import Text2Duet
 from models import *
 import copy

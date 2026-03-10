@@ -55,7 +55,7 @@ def plot_3d_motion(save_path, kinematic_tree, mp_joints, title, figsize=(10, 10)
     #         return ax
 
     fig = plt.figure(figsize=figsize)
-    ax = p3.Axes3D(fig)
+    ax = fig.add_subplot(projection='3d')
     init()
 
     mp_data = []

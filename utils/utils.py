@@ -105,8 +105,8 @@ class MotionNormalizer():
 
 class MotionNormalizerTorch():
     def __init__(self):
-        mean = np.load("./data/global_mean.npy")
-        std = np.load("./data/global_std.npy")
+        mean = np.load("/depot/natallah/data/shourya/dance/data/global_mean.npy")
+        std = np.load("/depot/natallah/data/shourya/dance/data/global_std.npy")
 
         self.motion_mean = torch.from_numpy(mean).float()
         self.motion_std = torch.from_numpy(std).float()

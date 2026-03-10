@@ -1,5 +1,5 @@
 GENERAL:
-  EXP_NAME: react20_both_juke
+  EXP_NAME: duet20_both_juke
   CHECKPOINT: ./checkpoints
   LOG_DIR: ./log
 

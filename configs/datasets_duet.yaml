@@ -1,8 +1,8 @@
 train_set:
     NAME: duet
-    music_root: '/home/verma198/data_split/music'
-    motion_root: '/home/verma198/data_split/motion'
-    text_root: '/home/verma198/data_split/text'
+    music_root: '/depot/natallah/data/shourya/zips/data_split_small/music'
+    motion_root: '/depot/natallah/data/shourya/zips/data_split_small/motion'
+    text_root: '/depot/natallah/data/shourya/zips/data_split_small/text'
     MOTION_REP: global
     MODE: train
     CACHE: True
@@ -10,9 +10,9 @@ train_set:
 
 val_set:
     NAME: duet
-    music_root: '/home/verma198/data_split/music'
-    motion_root: '/home/verma198/data_split/motion'
-    text_root: '/home/verma198/data_split/text'
+    music_root: '/depot/natallah/data/shourya/zips/data_split_small/music'
+    motion_root: '/depot/natallah/data/shourya/zips/data_split_small/motion'
+    text_root: '/depot/natallah/data/shourya/zips/data_split_small/text'
     MOTION_REP: global
     MODE: val
     CACHE: True
@@ -20,9 +20,9 @@ val_set:
 
 test_set:
     NAME: duet
-    music_root: '/home/verma198/data_split/music'
-    motion_root: '/home/verma198/data_split/motion'
-    text_root: '/home/verma198/data_split/text'
+    music_root: '/depot/natallah/data/shourya/zips/data_split_small/music'
+    motion_root: '/depot/natallah/data/shourya/zips/data_split_small/motion'
+    text_root: '/depot/natallah/data/shourya/zips/data_split_small/text'
     MOTION_REP: global
     MODE: test
     CACHE: True
